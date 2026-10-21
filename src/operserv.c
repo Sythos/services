@@ -894,10 +894,11 @@ void check_clones_rdns(const User *newUser) {
 	BOOL isExempt = FALSE, possibleCgnat;
 	TRIGGER_RESULT triggerResult;
 	HOST_TYPE hostType;
-	int idx, cloneCount = 0, warningIdx = -1;
-	User *user;
+	int cloneCount = 0, warningIdx = -1;
 	#ifdef ENABLE_CAPAB_NICKIP
+	User *user;
 	BOOL hasAddressDiversity = FALSE;
+	User_AltListItem *hostItem;
 	#endif
 
 
@@ -920,27 +921,26 @@ void check_clones_rdns(const User *newUser) {
 	return;
 	#endif
 
-	HASH_FOREACH_BRANCH(idx, ONLINEUSER_HASHSIZE) {
+	#ifdef ENABLE_CAPAB_NICKIP
+	hostItem = user_rdns_host_find(newUser->host);
+	for (; IS_NOT_NULL(hostItem); hostItem = hostItem->next) {
 
-		HASH_FOREACH_BRANCH_ITEM(onlineuser, idx, user) {
+		user = hostItem->user;
 
-			if (IS_EMPTY_STR(user->host) || str_not_equals_nocase(newUser->host, user->host) ||
-				user_is_services_agent(user) || user_is_services_client(user))
-				continue;
+		if (user_is_services_agent(user) || user_is_services_client(user))
+			continue;
 
-			++cloneCount;
+		++cloneCount;
 
-			#ifdef ENABLE_CAPAB_NICKIP
-			if (!rdns_same_clone_scan_key(newUser, user))
-				hasAddressDiversity = TRUE;
-			#endif
+		#ifdef ENABLE_CAPAB_NICKIP
+		if (!rdns_same_clone_scan_key(newUser, user))
+			hasAddressDiversity = TRUE;
+		#endif
 
-			if (user_is_ircop(user) || is_services_valid_oper(user))
-				isExempt = TRUE;
-		}
+		if (user_is_ircop(user) || is_services_valid_oper(user))
+			isExempt = TRUE;
 	}
 
-	#ifdef ENABLE_CAPAB_NICKIP
 	if (!hasAddressDiversity) {
 		clear_rdns_warning(newUser->host);
 		return;
