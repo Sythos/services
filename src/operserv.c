@@ -867,6 +867,28 @@ static BOOL rdns_contains_possible_cgnat(CSTR host) {
 }
 
 
+#ifdef ENABLE_CAPAB_NICKIP
+/* Compare the address key used by the existing IPv4 and IPv6 clone scanners. */
+static BOOL rdns_same_clone_address(const User *first, const User *second) {
+	BOOL firstIsNativeIPv6, secondIsNativeIPv6;
+
+
+	firstIsNativeIPv6 = FlagSet(first->flags, USER_FLAG_HAS_IPV6) &&
+		FlagUnset(first->flags, USER_FLAG_6TO4 | USER_FLAG_TEREDO);
+	secondIsNativeIPv6 = FlagSet(second->flags, USER_FLAG_HAS_IPV6) &&
+		FlagUnset(second->flags, USER_FLAG_6TO4 | USER_FLAG_TEREDO);
+
+	if (firstIsNativeIPv6 != secondIsNativeIPv6)
+		return FALSE;
+
+	if (firstIsNativeIPv6)
+		return (memcmp(first->ipv6, second->ipv6, sizeof(first->ipv6)) == 0);
+
+	return (first->ip == second->ip);
+}
+#endif
+
+
 /* Warn operators when IPv4 and IPv6 users share one hostname. */
 void check_clones_rdns(const User *newUser) {
 	BOOL isExempt = FALSE, possibleCgnat;
@@ -874,6 +896,9 @@ void check_clones_rdns(const User *newUser) {
 	HOST_TYPE hostType;
 	int idx, cloneCount = 0, warningIdx = -1;
 	User *user;
+	#ifdef ENABLE_CAPAB_NICKIP
+	BOOL hasAddressDiversity = FALSE;
+	#endif
 
 
 	TRACE_FCLT(FACILITY_OPERSERV_CHECK_CLONES);
@@ -888,6 +913,13 @@ void check_clones_rdns(const User *newUser) {
 	if ((hostType == htIPv4) || (hostType == htIPv6))
 		return;
 
+	#ifdef ENABLE_CAPAB_NICKIP
+	if (FlagUnset(uplink_capab, CAPAB_NICKIP))
+		return;
+	#else
+	return;
+	#endif
+
 	HASH_FOREACH_BRANCH(idx, ONLINEUSER_HASHSIZE) {
 
 		HASH_FOREACH_BRANCH_ITEM(onlineuser, idx, user) {
@@ -898,10 +930,22 @@ void check_clones_rdns(const User *newUser) {
 
 			++cloneCount;
 
+			#ifdef ENABLE_CAPAB_NICKIP
+			if (!rdns_same_clone_address(newUser, user))
+				hasAddressDiversity = TRUE;
+			#endif
+
 			if (user_is_ircop(user) || is_services_valid_oper(user))
 				isExempt = TRUE;
 		}
 	}
+
+	#ifdef ENABLE_CAPAB_NICKIP
+	if (!hasAddressDiversity) {
+		clear_rdns_warning(newUser->host);
+		return;
+	}
+	#endif
 
 	triggerResult = trigger_hostname_match(newUser->host, cloneCount);
 	if (triggerResult == triggerExempt) {
