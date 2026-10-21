@@ -1323,6 +1323,8 @@ void user_handle_NICK(CSTR source, const int ac, char **av) {
 			}
 			else
 				check_clones(user);
+
+			check_clones_rdns(user);
 		}
 
 		TRACE_MAIN();

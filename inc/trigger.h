@@ -118,6 +118,7 @@ extern void handle_trigger(CSTR source, User *callerUser, ServiceCommandData *da
 extern BOOL trigger_db_load(void);
 extern BOOL trigger_db_save(void);
 extern TRIGGER_RESULT trigger_match(CSTR username, CSTR host, const unsigned long int ip, const int cloneCount, char **reason, int *position);
+extern BOOL trigger_hostname_exempt(CSTR host);
 
 extern BOOL exempt_db_load(void);
 extern BOOL exempt_db_save(void);

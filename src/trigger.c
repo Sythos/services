@@ -487,6 +487,34 @@ TRIGGER_RESULT trigger_match(CSTR username, CSTR host, const unsigned long int i
 }
 
 
+BOOL trigger_hostname_exempt(CSTR host) {
+
+	Trigger *aTrigger;
+
+
+	if (IS_EMPTY_STR(host) || strchr(host, ':'))
+		return FALSE;
+
+	aTrigger = TriggerList;
+
+	while (IS_NOT_NULL(aTrigger)) {
+
+		if (FlagSet(aTrigger->flags, TRIGGER_FLAG_HOST) &&
+			(IS_NULL(aTrigger->username) || str_equals_nocase(aTrigger->username, "*")) &&
+			IS_NOT_EMPTY_STR(aTrigger->host) && !strchr(aTrigger->host, ':') &&
+			str_match_wild_nocase(aTrigger->host, host)) {
+
+			aTrigger->lastUsed = NOW;
+			return TRUE;
+		}
+
+		aTrigger = aTrigger->next;
+	}
+
+	return FALSE;
+}
+
+
 BOOL exempt_match(CSTR realname, int *position) {
 
 	Exempt *anExempt;
