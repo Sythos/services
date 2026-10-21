@@ -487,13 +487,13 @@ TRIGGER_RESULT trigger_match(CSTR username, CSTR host, const unsigned long int i
 }
 
 
-BOOL trigger_hostname_exempt(CSTR host) {
+TRIGGER_RESULT trigger_hostname_match(CSTR host, const int cloneCount) {
 
 	Trigger *aTrigger;
 
 
 	if (IS_EMPTY_STR(host) || strchr(host, ':'))
-		return FALSE;
+		return triggerNotFound;
 
 	aTrigger = TriggerList;
 
@@ -504,14 +504,21 @@ BOOL trigger_hostname_exempt(CSTR host) {
 			IS_NOT_EMPTY_STR(aTrigger->host) && !strchr(aTrigger->host, ':') &&
 			str_match_wild_nocase(aTrigger->host, host)) {
 
+			if (cloneCount <= 0)
+				return triggerFound;
+
 			aTrigger->lastUsed = NOW;
-			return TRUE;
+
+			if (cloneCount < aTrigger->value)
+				return triggerExempt;
+
+			return triggerFound;
 		}
 
 		aTrigger = aTrigger->next;
 	}
 
-	return FALSE;
+	return triggerNotFound;
 }
 
 

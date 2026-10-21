@@ -870,6 +870,8 @@ static BOOL rdns_contains_possible_cgnat(CSTR host) {
 /* Warn operators when IPv4 and IPv6 users share one hostname. */
 void check_clones_rdns(const User *newUser) {
 	BOOL isExempt = FALSE, possibleCgnat;
+	TRIGGER_RESULT triggerResult;
+	HOST_TYPE hostType;
 	int idx, cloneCount = 0, warningIdx = -1;
 	User *user;
 
@@ -879,12 +881,11 @@ void check_clones_rdns(const User *newUser) {
 	if (IS_NULL(newUser) || IS_EMPTY_STR(newUser->host))
 		return;
 
-	if (trigger_hostname_exempt(newUser->host)) {
-		clear_rdns_warning(newUser->host);
-		return;
-	}
-
 	if (user_is_services_agent(newUser) || user_is_services_client(newUser))
+		return;
+
+	hostType = host_type(newUser->host, NULL);
+	if ((hostType == htIPv4) || (hostType == htIPv6))
 		return;
 
 	HASH_FOREACH_BRANCH(idx, ONLINEUSER_HASHSIZE) {
@@ -902,7 +903,13 @@ void check_clones_rdns(const User *newUser) {
 		}
 	}
 
-	if (cloneCount < CONF_CLONE_MIN_USERS)
+	triggerResult = trigger_hostname_match(newUser->host, cloneCount);
+	if (triggerResult == triggerExempt) {
+		clear_rdns_warning(newUser->host);
+		return;
+	}
+
+	if ((triggerResult != triggerFound) && (cloneCount < CONF_CLONE_MIN_USERS))
 		return;
 
 	for (warningIdx = CLONE_DETECT_SIZE; warningIdx >= 0; --warningIdx) {
