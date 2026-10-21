@@ -1313,7 +1313,8 @@ void user_handle_NICK(CSTR source, const int ac, char **av) {
 		TRACE_MAIN();
 
 		/* Check to see if it looks like clones. */
-		if ((CONF_SET_CLONE == TRUE) && (synched == TRUE)) {
+		if ((CONF_SET_CLONE == TRUE) && (synched == TRUE) &&
+			FlagUnset(server->flags, SERVER_FLAG_BURSTING)) {
 
 			/*Teredo and 6to4 users will trigger the IPv4 clone scanner*/
 			if (FlagSet(user->flags, USER_FLAG_HAS_IPV6) && FlagUnset(user->flags, USER_FLAG_6TO4 | USER_FLAG_TEREDO)) {
