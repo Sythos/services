@@ -868,8 +868,8 @@ static BOOL rdns_contains_possible_cgnat(CSTR host) {
 
 
 #ifdef ENABLE_CAPAB_NICKIP
-/* Compare the address key used by the existing IPv4 and IPv6 clone scanners. */
-static BOOL rdns_same_clone_address(const User *first, const User *second) {
+/* Compare the scan key used by the existing IPv4 and IPv6 clone scanners. */
+static BOOL rdns_same_clone_scan_key(const User *first, const User *second) {
 	BOOL firstIsNativeIPv6, secondIsNativeIPv6;
 
 
@@ -882,7 +882,7 @@ static BOOL rdns_same_clone_address(const User *first, const User *second) {
 		return FALSE;
 
 	if (firstIsNativeIPv6)
-		return (memcmp(first->ipv6, second->ipv6, sizeof(first->ipv6)) == 0);
+		return (memcmp(first->ipv6, second->ipv6, CONF_CLONE_SCAN_V6 * 2) == 0);
 
 	return (first->ip == second->ip);
 }
@@ -931,7 +931,7 @@ void check_clones_rdns(const User *newUser) {
 			++cloneCount;
 
 			#ifdef ENABLE_CAPAB_NICKIP
-			if (!rdns_same_clone_address(newUser, user))
+			if (!rdns_same_clone_scan_key(newUser, user))
 				hasAddressDiversity = TRUE;
 			#endif
 
